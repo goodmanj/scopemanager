@@ -44,26 +44,21 @@ class MeadePanel(Frame):
         self.starlockCheckbox = Checkbutton (self, text='Starlock', variable = self.starlock, \
                                           command = self.togglestarlock)
         self.starlockCheckbox.pack(anchor=E)
-        self.safemode = IntVar()
-        Radiobutton(self, text="Safe Mode", variable=self.safemode, value=1, command=self.togglesafemode).pack(anchor=W)
-        Radiobutton(self, text="Scope Active", variable=self.safemode, value=2, command=self.togglesafemode).pack(anchor=W)
-    
-    def togglesafemode(self):
-        return
-    
+
     def togglestarlock(self):
-        return
+        if bool(self.starlock):
+            self.messages.log('Turning Meade Starlock and High-Precision Pointing On')
+            self.scope.setstarlock(True)
+            self.scope.sethighprecision(True)
+        else:
+            self.scope.setstarlock(False)
+            self.scope.sethighprecision(False)
+
 
 class NexStarPanel(Frame):
     # NexStar-specific commands
     def __init__(self, master=None):
         Frame.__init__(self, master)
-        self.safemode = IntVar()
-        Radiobutton(self, text="Safe Mode", variable=self.safemode, value=1, command=self.togglesafemode).pack(anchor=W)
-        Radiobutton(self, text="Scope Active", variable=self.safemode, value=2, command=self.togglesafemode).pack(anchor=W)
-
-    def togglesafemode(self):
-        return
     
 # The main window
 class ScopeManagerUI(Frame):
@@ -115,9 +110,10 @@ class ScopeManagerUI(Frame):
     
     def quit(self):
         if self.scope is not None and self.scope.ready:
-            self.scope.settracking(False)
-            if (self.scope.istracking()):
-                self.messages.log('WARNING: Tracking is still on!')
+            self.messages.log('Putting scope into safe mode.')
+            self.scope.set_safe(True)
+            if not self.scope.is_safe():
+                self.messages.log('WARNING: Scope is still active!')
                 time.sleep(3)
             self.scope.close()
         Frame.quit(self)
@@ -148,10 +144,10 @@ class ScopeManagerUI(Frame):
         self.flip.set(flipList[0])
         self.flipmenu = OptionMenu (self, self.flip, *flipList)
         self.flipmenu.config(width=7)
-        
-        self.tracking = IntVar()
-        self.trackCheckbox = Checkbutton (self, text='Tracking', variable = self.tracking, \
-                                          command = self.toggletrack)
+
+        self.safemode = IntVar()
+        self.safebutton = Radiobutton(self, text="Safe Mode", variable=self.safemode, value=1, command=self.togglesafemode)
+        self.activebutton = Radiobutton(self, text="Scope Active", variable=self.safemode, value=0, command=self.togglesafemode)        
                 
         self.positiontext = StringVar()
         self.positiontext.set('Not Connected')
@@ -171,13 +167,14 @@ class ScopeManagerUI(Frame):
         
         self.northButton.grid(column=3,row=2)
         self.southButton.grid(column=3,row=4)
-        self.eastButton.grid(column=2,row=3)
-        self.westButton.grid(column=4,row=3)        
+        self.eastButton.grid(column=2,row=3,sticky=E)
+        self.westButton.grid(column=4,row=3,sticky=W)        
         self.stopButton.grid(column=3,row=3)        
         
         
         self.portLabel.grid(column=1,row=0)
-        self.trackCheckbox.grid(column=0,row=5,columnspan=2)
+        self.safebutton.grid(column=1,row=6,columnspan=2,sticky=W)
+        self.activebutton.grid(column=3,row=6,columnspan=2,sticky=W)
 
         self.fliplabel.grid(column=5,row=1)
         self.flipmenu.grid(column=5,row=2)
@@ -186,7 +183,7 @@ class ScopeManagerUI(Frame):
         self.undosyncButton.grid(column=5,row=4)
         self.quitButton.grid(column=5,row=5)
         
-        self.messages.grid(column=1,row=7,columnspan=5)
+        self.messages.grid(column=1,row=8,columnspan=5)
 
         """serialist.Serialist() returns a list of active serial ports on this machine.
         This list is not updated while Scope Manager is running."""
@@ -223,7 +220,7 @@ class ScopeManagerUI(Frame):
             self.port.set(self.scopePorts[0])
             self.updateport()
         self.portmenu = OptionMenu (self, self.port, *(self.scopePorts), command=self.updateport)
-        self.portmenu.grid(column=2,row=0,columnspan=4)
+        self.portmenu.grid(column=2,row=0,columnspan=4,sticky=W)
 
         self.messages.insert(END,'Telescope Manager ready.\n')
 
@@ -284,11 +281,13 @@ class ScopeManagerUI(Frame):
         """Handle a change in the active serial port.  Close the current port
         if it's open and attempt to open the new one."""
         if self.scope is not None and self.scope.ready:
+            self.messages.log('Putting scope into safe mode.')
+            self.scope.set_safe(True)  # Activate safe mode
+            if not self.scope.is_safe():
+                self.messages.log('WARNING: Scope is still active!')
+                time.sleep(3)
             if self.scopespecific is not None:
                 self.scopespecific.grid_remove()                
-            if (self.scope.istracking()):
-                self.messages.log('WARNING: Tracking is still on!')
-                time.sleep(3)
             self.scope.close()
         newscopetype = self.scopeTypes[self.scopePorts.index(self.port.get())]
         self.messages.log('Looking for '+newscopetype+' on '+str(self.port.get())+'...')       
@@ -300,19 +299,18 @@ class ScopeManagerUI(Frame):
             self.scopespecific = MeadePanel(self)
         if self.scope is not None and self.scope.ready:
             self.messages.log('Connected to '+newscopetype+' on '+str(self.port.get()))
-            self.tracking.set(int(self.scope.istracking()))
-            self.scopespecific.grid(column=1,row=6,columnspan=5)
+            self.safemode.set(int(self.scope.is_safe()))
+            self.scopespecific.grid(column=1,row=7,columnspan=5)
         else:
             self.scope.close()
             self.messages.log("Can't connect to scope on "+str(self.port.get()))
             self.positiontext.set('Not Connected')
 
-    def toggletrack(self,event=None):
+    def togglesafemode(self,event=None):
         """Handle a change in the state of the "Tracking" checkbox."""
         if self.scope is not None and self.scope.ready:
-            newtrack = self.scope.settracking(bool(self.tracking.get()))
-            self.tracking.set(int(newtrack))
-            self.messages.log('Tracking changed to '+str(bool(self.tracking.get())))
+            self.scope.set_safe(bool(self.safemode.get()))
+            self.messages.log('Safe Mode changed to '+str(bool(self.safemode.get())))
         else:
             self.messages.log('Not connected to a telescope.')
     

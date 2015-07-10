@@ -56,9 +56,8 @@ class NexStar:
             pass
         self.ready = False
 
-    def istracking(self):
-        """ True if scope is tracking the sky to compensate for Earth's
-        rotation."""
+    def is_safe(self):
+        """ True if scope motors are disabled, tracking off."""
         self.ser.flushInput()
         self.ser.write(b't')
         response = self.ser.read(2)
@@ -66,32 +65,25 @@ class NexStar:
         if (len(response) < 2):
             print('No response from telescope.  Check communications.')
         elif response[0] == 0:
-            return False
-        elif response[0] > 0:
             return True
+        elif response[0] > 0:
+            return False
         else:
             print('Unexpected response from telescope:')
             response
-            return None
+            return False
 
-    def settracking(self,dotrack):
-        """ Set dotrack=True to start tracking the sky to
-        compensate for Earth's rotation; dotrack=False to stop.  If you're
-        in the southern hemisphere, hack this script."""
+    def set_safe(self,safe):
+        """ Set safe=True to put telescope into sleep mode (motors and displays
+        powered off); safe=False to put the telescope into active tracking mode."""
         self.ser.flushInput()
-        if dotrack:
+        if safe:
+            self.ser.write(b'T\x00')
+        else:
             self.ser.write(b'T\x02')
 #            self.ser.write(b'T\x01')   # for southern hemisphere
-        else:
-            self.ser.write(b'T\x00')
         response = self.ser.read(1)
-        response
-        newtrack = self.istracking()
-        if (newtrack == dotrack):
-            return newtrack
-        else:
-            print('Tracking not successfully changed to',dotrack)
-            return newtrack
+        print(response)
 
     def getposition(self,dump=False):
         """Request current telescope position.  Result is returned as a

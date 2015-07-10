@@ -58,9 +58,8 @@ class Meade:
             pass
         self.ready = False
 
-    def istracking(self):
-        """ True if scope is tracking the sky to compensate for Earth's
-        rotation."""
+    def is_safe(self):
+        """ True if scope motors are disabled, tracking off."""
         self.ser.flushInput()
         self.ser.write(b':GW#')
         response = self.ser.read(4)
@@ -68,31 +67,30 @@ class Meade:
         if (len(response) < 4):
             print('No response from telescope.  Check communications.')
         elif response[1:2] ==b'N':
-            return False
-        elif response[1:2] ==b'T':
             return True
+        elif response[1:2] ==b'T':
+            return False
         else:
             print('Unexpected response from telescope:')
             response
             return False
 
-    def settracking(self,dotrack):
-        """ Set dotrack=True to start tracking the sky to
-        compensate for Earth's rotation; dotrack=False to stop.  If you're
-        in the southern hemisphere, hack this script."""
+    def set_safe(self,safe):
+        """ Set safe=True to put telescope into sleep mode (motors and displays
+        powered off); safe=False to put the telescope into active tracking mode.
+        Kludge for safe=True: to start up tracking motors, telescope does a GOTO
+        to its current position."""
         self.ser.flushInput()
-        if dotrack:
-            self.ser.write(b'TQ#')
-        else:
-            self.ser.write(b':ST00.0#')
-        response = self.ser.read(1)
-        response
-        newtrack = self.istracking()
-        if (newtrack == dotrack):
-            return newtrack
-        else:
-            print('Tracking not successfully changed to',dotrack)
-            return newtrack
+        if not safe:
+            self.ser.write(b':hW#') # Wake scope
+            print('Waking scope')
+            if self.is_safe(): # scope is not tracking
+                pos = self.getposition()
+                self.setposition(pos)
+                print('GOTO to enable tracking.')
+        else: # Sleep scope
+            self.ser.write(b':hN#')
+            print('Putting scope to sleep.')
         
     def setstarlock(self,dostarlock):
         """ Set dostarlock=true to engage Starlock autoguiding."""
@@ -101,6 +99,14 @@ class Meade:
             self.ser.write(b':MgS1#')
         else:
             self.ser.write(b':MgS0#')
+
+    def sethighprecision(self,dohighprecision):
+        """ Set dohighprecision=true to turn on high precision pointing."""
+        self.ser.flushInput()
+        self.ser.write(b':P#')  # Toggle high precision, can't be sure which way.
+        resp = self.ser.read(14)
+        if (dohighprecision and (resp[0] == 'L')) or (not dohighprecision and (resp[0] == 'H')):  # Wrong precision
+            self.ser.write(b':P#') # Retoggle.
 
     def getposition(self,dump=False):
         """Request current telescope position.  Result is returned as a
