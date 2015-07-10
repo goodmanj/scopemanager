@@ -78,7 +78,7 @@ class ScopeManagerUI(Frame):
 
         """Get scope's current position, and report it to Stellarium and in this window."""        
         if self.scope is not None and self.scope.ready:
-            scopepos = self.scope.getposition()
+            scopepos = self.scope.getposition(dump=True)
             if scopepos is not None:
                 self.stellarium.send(scopepos)
                 self.positiontext.set("RA: %s\nDec: %s" % (scopepos.rastr(),scopepos.decstr()))
@@ -161,29 +161,37 @@ class ScopeManagerUI(Frame):
         """serialist.Serialist() returns a list of active serial ports on this machine.
         This list is not updated while Scope Manager is running."""
         portList = serialist.Serialist()
-        scopePorts = [];        
+        self.scopePorts = [];        
+        self.scopeTypes = [];
         self.port = StringVar()
         for port in portList:
             self.update()
-            self.messages.log('Scanning '+port+' for telescopes.')
-            scope = meade.Meade(port)
-            # scope = nexstar.NexStar(port)
+            self.messages.log('Scanning '+port+' for NexStar telescopes.')
+            scope = nexstar.NexStar(port)
             if scope.ready:
-                scopePorts.append(port)
+                self.messages.log('Found NexStar telescope on port '+port+'.')
+                self.scopePorts.append(port)
+                self.scopeTypes.append('NexStar')
             else:
+                scope.close()
                 del scope
+                self.update()
+                self.messages.log('Scanning '+port+' for Meade telescopes.')
                 scope = meade.Meade(port)
                 if scope.ready:
-                    scopePorts.append(port)
+                    self.messages.log('Found Meade telescope on port '+port+'.')
+                    self.scopePorts.append(port)
+                    self.scopeTypes.append('Meade')
             scope.close()
-
-        if not scopePorts:
+            del scope
+            
+        if not self.scopePorts:
             self.messages.log('No serial ports found.  Connect a serial device and restart Telescope Manager.\n')
             portList = ['NONE FOUND']
         else:
-            self.port.set(scopePorts[0])
+            self.port.set(self.scopePorts[0])
             self.updateport()
-        self.portmenu = OptionMenu (self, self.port, *scopePorts, command=self.updateport)
+        self.portmenu = OptionMenu (self, self.port, *(self.scopePorts), command=self.updateport)
         self.portmenu.grid(column=2,row=0,columnspan=4)
 
         self.messages.insert(END,'Telescope Manager ready.\n')
@@ -244,25 +252,24 @@ class ScopeManagerUI(Frame):
     def updateport(self,event=None):
         """Handle a change in the active serial port.  Close the current port
         if it's open and attempt to open the new one."""
-        self.messages.log('Looking for scope on '+str(self.port.get())+'...')
         if self.scope is not None and self.scope.ready:
             if (self.scope.istracking()):
                 self.messages.log('WARNING: Tracking is still on!')
                 time.sleep(3)
             self.scope.close()
-        self.scope = nexstar.NexStar(str(self.port.get()))
+        newscopetype = self.scopeTypes[self.scopePorts.index(self.port.get())]
+        self.messages.log('Looking for '+newscopetype+' on '+str(self.port.get())+'...')       
+        if newscopetype=='NexStar':
+            self.scope = nexstar.NexStar(str(self.port.get()))
+        else:
+            self.scope = meade.Meade(str(self.port.get()))
         if self.scope is not None and self.scope.ready:
-            self.messages.log('Connected to NexStar scope on '+str(self.port.get()))
+            self.messages.log('Connected to '+newscopetype+' on '+str(self.port.get()))
+            self.tracking.set(int(self.scope.istracking()))
         else:
             self.scope.close()
-            self.scope = meade.Meade(str(self.port.get()))
-            if self.scope is not None and self.scope.ready:
-                self.messages.log('Connected to Meade scope on '+str(self.port.get()))
-            else:
-                self.messages.log("Can't connect to scope on "+str(self.port.get()))
-                self.positiontext.set('Not Connected')
-        if self.scope is not None and self.scope.ready:
-            self.tracking.set(int(self.scope.istracking()))
+            self.messages.log("Can't connect to scope on "+str(self.port.get()))
+            self.positiontext.set('Not Connected')
 
     def toggletrack(self,event=None):
         """Handle a change in the state of the "Tracking" checkbox."""

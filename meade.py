@@ -11,7 +11,7 @@ class Meade:
         self.ready = False
         if comport is not None:
             self.open(comport)
-
+    
     def ready(self):
         """True if connection to a Meade-compatible scope is established.
         Updated only during open() and close(), so if the scope gets hit by
@@ -23,7 +23,7 @@ class Meade:
         commands to the scope, enters high precision coordinate mode."""
         self.ready = False
         try:
-            self.ser = serial.Serial(comport,9600,timeout=5)
+            self.ser = serial.Serial(comport,9600,timeout=2)
             self.ready = True
         except:
             print('Failed to open serial port ',comport)     
@@ -36,20 +36,20 @@ class Meade:
             self.ser.flushInput()
             self.ser.write(b':GW#')       # Query alignment status
             resp = self.ser.read(4)
-            if len(resp) < 4:
+            print(resp)
+            if len(resp) < 3:
                 print('Meade telescope is not responding.')
                 self.ready = False
+                return
             else:
                 print('Meade telescope responded.')
                 self.ready = True
-                if resp[2:3] == b'0':
-                    print('Warning: Telescope is not aligned.')
-            self.ser.flush()
-            self.ser.write(b':GD#')     # Get declination
-            resp = self.ser.read(10)
-            if len(resp) < 10:           # short declination returned
-                self.ser.write(b':U#')   # toggle precision
-            self.ser.flush()
+                self.ser.flushInput()
+                self.ser.write(b':GD#')     # Get declination
+                resp = self.ser.read(10)
+                if len(resp) < 10:           # short declination returned
+                    self.ser.write(b':U#')   # toggle precision
+                self.ser.flushInput()
     
     def close(self):
         try:
@@ -74,7 +74,7 @@ class Meade:
         else:
             print('Unexpected response from telescope:')
             response
-            return None
+            return False
 
     def settracking(self,dotrack):
         """ Set dotrack=True to start tracking the sky to

@@ -16,7 +16,7 @@ class NexStar:
         self.ready = False
         if comport is not None:
             self.open(comport)
-
+            
     def ready(self):
         """True if connection to a NexStar-compatible scope is established.
         Updated only during open() and close(), so if the scope gets hit by
@@ -28,7 +28,7 @@ class NexStar:
         there" messages to verify connection to a NexStar-compatible scope."""
         self.ready = False
         try:
-            self.ser = serial.Serial(comport,9600,timeout=0.5)
+            self.ser = serial.Serial(comport,9600,timeout=1)
             self.ready = True
         except:
             print('Failed to open serial port ',comport)     
@@ -44,6 +44,7 @@ class NexStar:
             if not(resp == b'q#'):
                 print('NexStar telescope is not responding.')
                 self.ready = False
+                return
             else:
                 self.ready = True
             self.ser.flush()
