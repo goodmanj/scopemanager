@@ -84,9 +84,10 @@ class Meade:
         if not safe:
             self.ser.write(b':hW#') # Wake scope
             print('Waking scope')
+            time.sleep(1)
             if self.is_safe(): # scope is not tracking
                 pos = self.getposition()
-                self.setposition(pos)
+                self.goto(pos)
                 print('GOTO to enable tracking.')
         else: # Sleep scope
             self.ser.write(b':hN#')
@@ -105,8 +106,11 @@ class Meade:
         self.ser.flushInput()
         self.ser.write(b':P#')  # Toggle high precision, can't be sure which way.
         resp = self.ser.read(14)
-        if (dohighprecision and (resp[0] == 'L')) or (not dohighprecision and (resp[0] == 'H')):  # Wrong precision
-            self.ser.write(b':P#') # Retoggle.
+        if (len(resp)> 1):
+            if (dohighprecision and (resp[0] == 'L')) or (not dohighprecision and (resp[0] == 'H')):  # Wrong precision
+                self.ser.write(b':P#') # Retoggle.
+        else:
+            print('No response from scope')
 
     def getposition(self,dump=False):
         """Request current telescope position.  Result is returned as a
@@ -200,9 +204,12 @@ class Meade:
         print('Moving scope to ',pos.ra(),pos.dec())
         self.ser.write(b':MS#')
         resp = self.ser.read(1)
-        if int(resp) > 0:
-            print('Object below horizon limits.')
-
+        if len(resp) > 0:            
+            if int(resp) > 0:
+                print('Object below horizon limits.')
+        else:
+            print('No response from scope.')
+            
     def sync(self,pos):
         """Command telescope to SYNC on position pos.
         pos must be a RADec object (see radec.py)"""
