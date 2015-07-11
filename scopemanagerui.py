@@ -46,14 +46,13 @@ class MeadePanel(Frame):
         self.starlockCheckbox.pack(anchor=E)
 
     def togglestarlock(self):
-        if bool(self.starlock):
+        newstarlock = bool(self.starlock.get())
+        if (newstarlock):
             self.master.messages.log('Turning on Meade Starlock and High-Precision Pointing')
-            self.master.scope.setstarlock(True)
-            self.master.scope.sethighprecision(True)
         else:
             self.master.messages.log('Turning off Meade Starlock and High-Precision Pointing')
-            self.master.scope.setstarlock(False)
-            self.master.scope.sethighprecision(False)
+        self.master.scope.setstarlock(newstarlock)
+        self.master.scope.sethighprecision(newstarlock)
 
 
 class NexStarPanel(Frame):
