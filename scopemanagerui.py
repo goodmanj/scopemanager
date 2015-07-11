@@ -47,12 +47,13 @@ class MeadePanel(Frame):
 
     def togglestarlock(self):
         if bool(self.starlock):
-            self.messages.log('Turning Meade Starlock and High-Precision Pointing On')
-            self.scope.setstarlock(True)
-            self.scope.sethighprecision(True)
+            self.master.messages.log('Turning on Meade Starlock and High-Precision Pointing')
+            self.master.scope.setstarlock(True)
+            self.master.scope.sethighprecision(True)
         else:
-            self.scope.setstarlock(False)
-            self.scope.sethighprecision(False)
+            self.master.messages.log('Turning off Meade Starlock and High-Precision Pointing')
+            self.master.scope.setstarlock(False)
+            self.master.scope.sethighprecision(False)
 
 
 class NexStarPanel(Frame):
@@ -307,7 +308,7 @@ class ScopeManagerUI(Frame):
             self.positiontext.set('Not Connected')
 
     def togglesafemode(self,event=None):
-        """Handle a change in the state of the "Tracking" checkbox."""
+        """Handle a change in the state of the "Safe Mode" radio buttons."""
         if self.scope is not None and self.scope.ready:
             self.scope.set_safe(bool(self.safemode.get()))
             self.messages.log('Safe Mode changed to '+str(bool(self.safemode.get())))
