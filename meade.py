@@ -249,3 +249,17 @@ class Meade:
         time.sleep(5)
         endpos = self.getaltaz()
         return ((endpos[0]-startpos[0])*3600/5,(endpos[1]-startpos[1])*3600/5)
+
+    def focus(self,time):
+        time = min(max(time,-65000),65000)  # Limit 65000 ms focus
+        self.ser.flush()
+        self.ser.write((':FPs%05d#'%time).encode())
+
+    def focushalt(self):
+        self.ser.flush()
+        self.ser.write(b':FQ#')
+        
+    def focusspeed(self,speed):
+        speed = min(max(speed,1),4)
+        self.ser.flush()
+        self.ser.write((':F%1d#'%speed).encode())

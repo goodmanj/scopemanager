@@ -43,7 +43,30 @@ class MeadePanel(Frame):
         self.starlock = IntVar()
         self.starlockCheckbox = Checkbutton (self, text='Starlock', variable = self.starlock, \
                                           command = self.togglestarlock)
-        self.starlockCheckbox.pack(anchor=E)
+        self.starlockCheckbox.grid(column=0,row=0,columnspan=3)
+        Label(self, text="Focus: ").grid(column=0,row=1,sticky=E)
+        self.focusInButton = Button (self, text='In')
+        self.focusInButton.bind("<Button-1>", self.focusin)
+        self.focusInButton.grid(column=1,row=1)
+        self.focusOutButton = Button (self, text='Out')
+        self.focusOutButton.bind("<Button-1>", self.focusout)
+        self.focusOutButton.grid(column=2,row=1)
+        self.focusHaltButton = Button (self, text='Stop')
+        self.focusHaltButton.bind("<Button-1>", master.scope.focushalt)
+        self.focusHaltButton.grid(column=3,row=1)
+
+        Label(self, text='Focus Step:').grid(row=2, column=0,sticky=E)
+        self.steps = StringVar()
+        self.steps.set('50')
+        self.focusStepsEntry = Entry(self,textvariable=self.steps)
+        self.focusStepsEntry.grid(row=2,column=1)
+        Label (self, text='Speed:').grid(row=2,column=2)
+        self.focusSpeedList = ['4 Fast','3','2','1 Slow']
+        self.focusSpeed = StringVar()
+        self.focusSpeed.set(self.focusSpeedList[0])
+        self.focusSpeedMenu = OptionMenu (self, self.focusSpeed, *focusSpeedList,command=self.focusspeed)
+        self.focusSpeedMenu.grid(row=2,column=3)
+        
 
     def togglestarlock(self):
         if bool(self.starlock):
@@ -54,6 +77,21 @@ class MeadePanel(Frame):
             self.master.messages.log('Turning off Meade Starlock and High-Precision Pointing')
             self.master.scope.setstarlock(False)
             self.master.scope.sethighprecision(False)
+            
+    def focusin(self):
+        numsteps = int(self.steps.get())
+        self.master.messages.log('Focusing inward for %05d millisec.'%numsteps)
+        self.master.scope.focus(numsteps)
+        
+    def focusout(self):
+        numsteps = int(self.steps.get())
+        self.master.messages.log('Focusing outward for %05d millisec.'%numsteps)
+        self.master.scope.focus(-numsteps)
+        
+    def focusspeed(self):
+        speed = self.focusSpeedList.index(self.focusSpeed.get())+1
+        self.master.messages.log('Focus speed now %1d.'%speed)
+        self.master.scope.focusspeed(speed)
 
 
 class NexStarPanel(Frame):
