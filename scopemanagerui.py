@@ -64,7 +64,7 @@ class MeadePanel(Frame):
         self.focusSpeedList = ['4 Fast','3','2','1 Slow']
         self.focusSpeed = StringVar()
         self.focusSpeed.set(self.focusSpeedList[0])
-        self.focusSpeedMenu = OptionMenu (self, self.focusSpeed, *focusSpeedList,command=self.focusspeed)
+        self.focusSpeedMenu = OptionMenu (self, self.focusSpeed, *self.focusSpeedList,command=self.focusspeed)
         self.focusSpeedMenu.grid(row=2,column=3)
         
 
@@ -78,17 +78,17 @@ class MeadePanel(Frame):
             self.master.scope.setstarlock(False)
             self.master.scope.sethighprecision(False)
             
-    def focusin(self):
+    def focusin(self,event=None):
         numsteps = int(self.steps.get())
         self.master.messages.log('Focusing inward for %05d millisec.'%numsteps)
         self.master.scope.focus(numsteps)
         
-    def focusout(self):
+    def focusout(self,event=None):
         numsteps = int(self.steps.get())
         self.master.messages.log('Focusing outward for %05d millisec.'%numsteps)
         self.master.scope.focus(-numsteps)
         
-    def focusspeed(self):
+    def focusspeed(self,event=None):
         speed = self.focusSpeedList.index(self.focusSpeed.get())+1
         self.master.messages.log('Focus speed now %1d.'%speed)
         self.master.scope.focusspeed(speed)
