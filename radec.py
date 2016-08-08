@@ -37,7 +37,8 @@ class RADec(tuple):
 #            raise ValueError("RA or dec out of bounds.")
         return self
 
-    def fromStellarium(stellra,stelldec):
+    @classmethod
+    def fromStellarium(cls,stellra,stelldec):
         """Create a RADec object from Stellarium's data format."""
 
         """Stellarium format: stellra is an unsigned integer,
@@ -46,7 +47,7 @@ class RADec(tuple):
         -90 = -0x40000000, +90 = 0x40000000"""
         ra_decimal_hours = (24*stellra / 0x100000000)
         declination_decimal_deg = (90*stelldec / 0x40000000)
-        return RADec((ra_decimal_hours, declination_decimal_deg))
+        return cls((ra_decimal_hours, declination_decimal_deg))
 
     def toStellarium(self):
         """Convert a RADec object to Stellarium's data format"""
@@ -56,7 +57,8 @@ class RADec(tuple):
         stelldec = int(0x40000000*self[1]/90)
         return (stellra,stelldec)
     
-    def fromNexstar(response):
+    @classmethod
+    def fromNexstar(cls,response):
         """Create a RADec object from NexStar's data format."""
 
         """NexStar format: b'RRRRRRRR,DDDDDDDD', where RRRRRRRR is the ascii hexadecimal
@@ -70,7 +72,7 @@ class RADec(tuple):
             raise ValueError("Invalid NexStar coordinate")
         rahrs = 24*int(response[0:8],16)/0x100000000
         decdeg = 360*RADec.unsigned_to_signed_int(int(response[9:17],16))/0x100000000
-        return RADec((rahrs,decdeg))
+        return cls((rahrs,decdeg))
 
     def toNexstar(self):
         """Convert a RADec object to NexStar's data format."""
@@ -79,7 +81,8 @@ class RADec(tuple):
         msg = '%08X,%08X' % (intra,intdec)
         return bytes(msg,'ascii')
 
-    def fromMeade(raresp,decresp):
+    @classmethod
+    def fromMeade(cls,raresp,decresp):
         """Create a RADec object from Meade's data format."""
 
         """Meade format: decresp = b'sDD*MM'SS#, raresp = b'HH:MM:SS#' where s is sign,
@@ -94,16 +97,41 @@ class RADec(tuple):
             decdeg=0
             raise ValueError("Invalid Meade declination.")
         if decresp[0:1] == b'+':   # Positive declination
-            decdeg = int(decresp[1:3]) + int(decresp[4:6])/60 + int(decresp[7:9])/3600
+            decdeg = int(decresp[1:3]) + int(decresp[4:6])/60. + int(decresp[7:9])/3600.
         else:                     # Negative
-            decdeg = -int(decresp[1:3]) - int(decresp[4:6])/60 - int(decresp[7:9])/3600
-        return RADec((rahrs,decdeg))
+            decdeg = -int(decresp[1:3]) - int(decresp[4:6])/60. - int(decresp[7:9])/3600.
+        return cls((rahrs,decdeg))
 
     def toMeade(self):
         """Convert a RADec object to Meade's data format."""
         msgra = '%02d:%02d:%02d#' % self.ra_hms();
         msgdec = '%+03d*%02d\'%02d#' % self.dec_dms();
-        return (bytes(msgra,'ascii'), bytes(msgdec,'ascii'))
+        return (msgra.encode('ascii'), msgdec.encode('ascii'))
+
+    @classmethod
+    def fromStr(cls,rastr,decstr):
+        """Create a RADec object from string data format."""
+
+        """String format: ra: "##h##m##s", dec: "+##d##m##s" """
+
+        if len(rastr)< 8:
+            rahrs=0
+            raise ValueError("Invalid right ascension.")
+        hh = rastr.find('h')
+        mm = rastr.find('m')
+        ss = rastr.find('s')
+        rahrs = int(rastr[0:hh]) + int(rastr[hh+1:mm])/60. + int(rastr[mm+1:ss])/3600.
+        if len(decstr) < 8:
+            decdeg=0
+            raise ValueError("Invalid Meade declination.")
+        dd = decstr.find('d')
+        mm = decstr.find('m')
+        ss = decstr.find('s')
+        if decstr[0] == '-':   # Negative declination
+            decdeg = int(decstr[0:dd]) - int(decstr[dd+1:mm])/60. - int(decstr[mm+1:ss])/3600.
+        else:  # Positive
+            decdeg = int(decstr[0:dd]) + int(decstr[dd+1:mm])/60. + int(decstr[mm+1:ss])/3600.
+        return cls((rahrs,decdeg))
     
     def ra(self):
         """Right ascension in decimal degrees."""

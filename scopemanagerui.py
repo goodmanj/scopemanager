@@ -12,7 +12,12 @@ import serialist
 import log
 import inspect
 
-from tkinter import *
+try:
+    # for Python2
+    from Tkinter import *
+except ImportError:
+    # for Python3
+    from tkinter import *
 
 class Log(Text):
     """A text widget that can't be edited by the user."""
@@ -43,7 +48,42 @@ class MeadePanel(Frame):
         self.starlock = IntVar()
         self.starlockCheckbox = Checkbutton (self, text='Starlock', variable = self.starlock, \
                                           command = self.togglestarlock)
-        self.starlockCheckbox.pack(anchor=E)
+        self.starlockCheckbox.grid(column=0,row=0,columnspan=3)
+
+        Label(self, text="Goto: ").grid(column=0,row=1,sticky=E)
+        self.gotora = StringVar()
+        self.raGotoEntry = Entry(self,textvariable=self.gotora,width=11)
+        self.raGotoEntry.grid(row=1,column=1)
+        self.gotodec = StringVar()
+        self.decGotoEntry = Entry(self,textvariable=self.gotodec,width=11)
+        self.decGotoEntry.grid(row=1,column=2)
+        self.gotoButton = Button(self, text='Goto')
+        self.gotoButton.bind("<Button-1>", self.meadegoto)
+        self.gotoButton.grid(row=1,column=3)
+
+        Label(self, text="Focus: ").grid(column=0,row=2,sticky=E)
+        self.focusInButton = Button (self, text='In')
+        self.focusInButton.bind("<Button-1>", self.focusin)
+        self.focusInButton.grid(column=1,row=2,sticky=E)
+        self.focusOutButton = Button (self, text='Out')
+        self.focusOutButton.bind("<Button-1>", self.focusout)
+        self.focusOutButton.grid(column=2,row=2,sticky=W)
+        self.focusHaltButton = Button (self, text='Stop')
+        self.focusHaltButton.bind("<Button-1>", self.focushalt)
+        self.focusHaltButton.grid(column=3,row=2)
+
+        Label(self, text='Focus Step:').grid(row=3, column=0,sticky=E)
+        self.steps = StringVar()
+        self.steps.set('50')
+        self.focusStepsEntry = Entry(self,textvariable=self.steps,width=6)
+        self.focusStepsEntry.grid(row=3,column=1)
+        Label (self, text='Speed:').grid(row=3,column=2)
+        self.focusSpeedList = ['1 Slow','2','3','4 Fast']
+        self.focusSpeed = StringVar()
+        self.focusSpeed.set(self.focusSpeedList[0])
+        self.focusSpeedMenu = OptionMenu (self, self.focusSpeed, *self.focusSpeedList,command=self.focusspeed)
+        self.focusSpeedMenu.grid(row=3,column=3)
+        
 
     def togglestarlock(self):
         if bool(self.starlock):
@@ -54,7 +94,31 @@ class MeadePanel(Frame):
             self.master.messages.log('Turning off Meade Starlock and High-Precision Pointing')
             self.master.scope.setstarlock(False)
             self.master.scope.sethighprecision(False)
+            
+    def focusin(self,event=None):
+        numsteps = int(self.steps.get())
+        self.master.messages.log('Focusing inward for %05d millisec.'%numsteps)
+        self.master.scope.focus(numsteps)
+        
+    def focusout(self,event=None):
+        numsteps = int(self.steps.get())
+        self.master.messages.log('Focusing outward for %05d millisec.'%numsteps)
+        self.master.scope.focus(-numsteps)
+        
+    def focushalt(self,event=None):
+        self.master.messages.log('Stopping focus motion')
+        self.master.scope.focushalt()
 
+    def focusspeed(self,event=None):
+        speed = self.focusSpeedList.index(self.focusSpeed.get())+1
+        self.master.messages.log('Focus speed now %1d.'%speed)
+        self.master.scope.focusspeed(speed)
+
+    def meadegoto(self,event=None):
+        gotopos = radec.RADec.fromStr(self.gotora.get(),self.gotodec.get())
+        self.master.messages.log('GOTO '+str(gotopos.ra())+' '+str(gotopos.dec()))
+        if self.master.scope is not None and self.master.scope.ready:
+            self.master.scope.goto(gotopos)
 
 class NexStarPanel(Frame):
     # NexStar-specific commands
