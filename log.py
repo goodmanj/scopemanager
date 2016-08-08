@@ -1,6 +1,11 @@
 """ A text widget that can't be edited by the user."""
 
-from tkinter import Text
+try:
+    # for Python2
+    from Tkinter import *
+except ImportError:
+    # for Python3
+    from tkinter import *
 
 class Log(Text):
     """A text widget that can't be edited by the user."""
