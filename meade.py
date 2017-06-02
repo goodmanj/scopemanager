@@ -252,7 +252,7 @@ class Meade:
 
     def focus(self,time):
         time = min(max(time,-65000),65000)  # Limit 65000 ms focus
-        focusmsg = (':FP%+011.4f#'%time).encode()
+        focusmsg = (':FP%+d#'%time).encode()
         self.ser.flush()
         print(focusmsg)
         self.ser.write(focusmsg)
