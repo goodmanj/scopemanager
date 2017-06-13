@@ -38,7 +38,7 @@ class Log(Text):
         """Add text to the end of the widget and make sure it's visible."""
         self.insert(END, chars+'\n')
         self.see(END)
-        self.update()
+        self.update_idletasks()
 
 
 class MeadePanel(Frame):
@@ -80,6 +80,8 @@ class MeadePanel(Frame):
         self.focusSpeed.set(self.focusSpeedList[0])
         self.focusSpeedMenu = OptionMenu (self, self.focusSpeed, *self.focusSpeedList,command=self.focusspeed)
         self.focusSpeedMenu.grid(row=3,column=3)
+        self.focusspeed()
+        self.update()
         
 
     def togglestarlock(self):
@@ -93,16 +95,17 @@ class MeadePanel(Frame):
             self.master.scope.sethighprecision(False)
             
     def focusin(self,event=None):
-        self.master.messages.log('Starting to focus inward ')
+        #self.master.messages.log('Starting to focus inward ')
         self.master.scope.focusin()
         
     def focusout(self,event=None):
-        self.master.messages.log('Starting to focus outward.')
+        #self.master.messages.log('Starting to focus outward.')
         self.master.scope.focusout()
         
     def focushalt(self,event=None):
-        self.master.messages.log('Stopping focus motion')
+        #self.master.messages.log('Stopping focus motion')
         self.master.scope.focushalt()
+
 
     def focusspeed(self,event=None):
         speed = self.focusSpeedList.index(self.focusSpeed.get())+1
@@ -133,6 +136,7 @@ class ScopeManagerUI(Frame):
         self.poll()
         self.sync_confirm = time.clock()
         self.master.protocol("WM_DELETE_WINDOW", self.quit)
+        self.update()
         
     
     def poll(self):
@@ -334,6 +338,7 @@ class ScopeManagerUI(Frame):
         if self.scope is not None and self.scope.ready:
             self.scope.stop()     
             self.messages.log('Stopped')
+            self.update()
         else:
             self.messages.log('Not connected to a telescope.')
             

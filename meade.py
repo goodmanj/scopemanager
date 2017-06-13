@@ -258,14 +258,14 @@ class Meade:
         self.ser.write(focusmsg)
 
     def focusin(self):
-    	"""Start focuser moving  inward"""
+        """Start focuser moving  inward"""
         focusmsg = b':F+#'
         self.ser.flush()
         print(focusmsg)
         self.ser.write(focusmsg)
 
     def focusout(self):
-    	"""Start focuser moving  outward"""
+        """Start focuser moving  outward"""
         focusmsg = b':F-#'
         self.ser.flush()
         print(focusmsg)
