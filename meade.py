@@ -250,15 +250,30 @@ class Meade:
         endpos = self.getaltaz()
         return ((endpos[0]-startpos[0])*3600/5,(endpos[1]-startpos[1])*3600/5)
 
-    def focus(self,time):
+    def focus(self,time):   ### DOES NOT WORK
         time = min(max(time,-65000),65000)  # Limit 65000 ms focus
         focusmsg = (':FP%+d#'%time).encode()
         self.ser.flush()
         print(focusmsg)
         self.ser.write(focusmsg)
 
+    def focusin(self):
+    	"""Start focuser moving  inward"""
+        focusmsg = b':F+#'
+        self.ser.flush()
+        print(focusmsg)
+        self.ser.write(focusmsg)
+
+    def focusout(self):
+    	"""Start focuser moving  outward"""
+        focusmsg = b':F-#'
+        self.ser.flush()
+        print(focusmsg)
+        self.ser.write(focusmsg)
+
     def focushalt(self):
         self.ser.flush()
+        print(b':FQ#')
         self.ser.write(b':FQ#')
         
     def focusspeed(self,speed):

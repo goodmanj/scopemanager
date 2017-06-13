@@ -64,19 +64,16 @@ class MeadePanel(Frame):
         Label(self, text="Focus: ").grid(column=0,row=2,sticky=E)
         self.focusInButton = Button (self, text='In')
         self.focusInButton.bind("<Button-1>", self.focusin)
+        self.focusInButton.bind("<ButtonRelease-1>", self.focushalt)
         self.focusInButton.grid(column=1,row=2,sticky=E)
         self.focusOutButton = Button (self, text='Out')
         self.focusOutButton.bind("<Button-1>", self.focusout)
+        self.focusOutButton.bind("<ButtonRelease-1>", self.focushalt)
         self.focusOutButton.grid(column=2,row=2,sticky=W)
         self.focusHaltButton = Button (self, text='Stop')
         self.focusHaltButton.bind("<Button-1>", self.focushalt)
         self.focusHaltButton.grid(column=3,row=2)
 
-        Label(self, text='Focus Step:').grid(row=3, column=0,sticky=E)
-        self.steps = StringVar()
-        self.steps.set('50')
-        self.focusStepsEntry = Entry(self,textvariable=self.steps,width=6)
-        self.focusStepsEntry.grid(row=3,column=1)
         Label (self, text='Speed:').grid(row=3,column=2)
         self.focusSpeedList = ['1 Slow','2','3','4 Fast']
         self.focusSpeed = StringVar()
@@ -96,14 +93,12 @@ class MeadePanel(Frame):
             self.master.scope.sethighprecision(False)
             
     def focusin(self,event=None):
-        numsteps = int(self.steps.get())
-        self.master.messages.log('Focusing inward for %05d millisec.'%numsteps)
-        self.master.scope.focus(numsteps)
+        self.master.messages.log('Starting to focus inward ')
+        self.master.scope.focusin()
         
     def focusout(self,event=None):
-        numsteps = int(self.steps.get())
-        self.master.messages.log('Focusing outward for %05d millisec.'%numsteps)
-        self.master.scope.focus(-numsteps)
+        self.master.messages.log('Starting to focus outward.')
+        self.master.scope.focusout()
         
     def focushalt(self,event=None):
         self.master.messages.log('Stopping focus motion')
