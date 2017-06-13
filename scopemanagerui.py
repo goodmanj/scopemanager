@@ -38,7 +38,7 @@ class Log(Text):
         """Add text to the end of the widget and make sure it's visible."""
         self.insert(END, chars+'\n')
         self.see(END)
-        self.update()
+        self.update_idletasks()
 
 
 class MeadePanel(Frame):
@@ -64,25 +64,24 @@ class MeadePanel(Frame):
         Label(self, text="Focus: ").grid(column=0,row=2,sticky=E)
         self.focusInButton = Button (self, text='In')
         self.focusInButton.bind("<Button-1>", self.focusin)
+        self.focusInButton.bind("<ButtonRelease-1>", self.focushalt)
         self.focusInButton.grid(column=1,row=2,sticky=E)
         self.focusOutButton = Button (self, text='Out')
         self.focusOutButton.bind("<Button-1>", self.focusout)
+        self.focusOutButton.bind("<ButtonRelease-1>", self.focushalt)
         self.focusOutButton.grid(column=2,row=2,sticky=W)
         self.focusHaltButton = Button (self, text='Stop')
         self.focusHaltButton.bind("<Button-1>", self.focushalt)
         self.focusHaltButton.grid(column=3,row=2)
 
-        Label(self, text='Focus Step:').grid(row=3, column=0,sticky=E)
-        self.steps = StringVar()
-        self.steps.set('50')
-        self.focusStepsEntry = Entry(self,textvariable=self.steps,width=6)
-        self.focusStepsEntry.grid(row=3,column=1)
         Label (self, text='Speed:').grid(row=3,column=2)
         self.focusSpeedList = ['1 Slow','2','3','4 Fast']
         self.focusSpeed = StringVar()
         self.focusSpeed.set(self.focusSpeedList[0])
         self.focusSpeedMenu = OptionMenu (self, self.focusSpeed, *self.focusSpeedList,command=self.focusspeed)
         self.focusSpeedMenu.grid(row=3,column=3)
+        self.focusspeed()
+        self.update()
         
 
     def togglestarlock(self):
@@ -96,18 +95,17 @@ class MeadePanel(Frame):
             self.master.scope.sethighprecision(False)
             
     def focusin(self,event=None):
-        numsteps = int(self.steps.get())
-        self.master.messages.log('Focusing inward for %05d millisec.'%numsteps)
-        self.master.scope.focus(numsteps)
+        #self.master.messages.log('Starting to focus inward ')
+        self.master.scope.focusin()
         
     def focusout(self,event=None):
-        numsteps = int(self.steps.get())
-        self.master.messages.log('Focusing outward for %05d millisec.'%numsteps)
-        self.master.scope.focus(-numsteps)
+        #self.master.messages.log('Starting to focus outward.')
+        self.master.scope.focusout()
         
     def focushalt(self,event=None):
-        self.master.messages.log('Stopping focus motion')
+        #self.master.messages.log('Stopping focus motion')
         self.master.scope.focushalt()
+
 
     def focusspeed(self,event=None):
         speed = self.focusSpeedList.index(self.focusSpeed.get())+1
@@ -138,6 +136,7 @@ class ScopeManagerUI(Frame):
         self.poll()
         self.sync_confirm = time.clock()
         self.master.protocol("WM_DELETE_WINDOW", self.quit)
+        self.update()
         
     
     def poll(self):
@@ -339,6 +338,7 @@ class ScopeManagerUI(Frame):
         if self.scope is not None and self.scope.ready:
             self.scope.stop()     
             self.messages.log('Stopped')
+            self.update()
         else:
             self.messages.log('Not connected to a telescope.')
             
